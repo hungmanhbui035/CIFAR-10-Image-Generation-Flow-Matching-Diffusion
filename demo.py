@@ -14,15 +14,15 @@ def parse_args():
     parser.add_argument('--method', type=str, default='flow matching', choices=['flow matching', 'diffusion'])
     parser.add_argument('--sigma', type=float, default=2.0)
     # dataset
-    parser.add_argument('--dataset', type=str, default='cifar10', choices=['mnist', 'cifar10'])
+    parser.add_argument('--dataset', type=str, default='mnist', choices=['mnist', 'cifar10'])
     # model
-    parser.add_argument('--channels', nargs='+', type=int, default=[64, 128, 256, 512])
+    parser.add_argument('--channels', nargs='+', type=int, default=[32, 64, 128])
     parser.add_argument('--num-residual-layers', type=int, default=2)
-    parser.add_argument('--t-embed-dim', type=int, default=128)
-    parser.add_argument('--y-embed-dim', type=int, default=128)
+    parser.add_argument('--t-embed-dim', type=int, default=40)
+    parser.add_argument('--y-embed-dim', type=int, default=40)
     parser.add_argument('--model-path', type=str, required=True)
     # simulate
-    parser.add_argument('--y', type=str, required=True, choices=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+    parser.add_argument('--y', type=str, required=True, choices=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'])
     parser.add_argument('--w', type=float, default=3.0)
     parser.add_argument('--num-timesteps', type=int, default=1000)
 

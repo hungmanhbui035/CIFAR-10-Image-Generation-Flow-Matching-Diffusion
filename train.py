@@ -13,18 +13,18 @@ def parse_args():
     # method
     parser.add_argument('--method', type=str, default='flow matching', choices=['flow matching', 'diffusion'])
     # dataset
-    parser.add_argument('--dataset', type=str, default='cifar10', choices=['mnist', 'cifar10'])
+    parser.add_argument('--dataset', type=str, default='mnist', choices=['mnist', 'cifar10'])
     # model
-    parser.add_argument('--channels', nargs='+', type=int, default=[64, 128, 256, 512])
+    parser.add_argument('--channels', nargs='+', type=int, default=[32, 64, 128])
     parser.add_argument('--num-residual-layers', type=int, default=2)
-    parser.add_argument('--t-embed-dim', type=int, default=128)
-    parser.add_argument('--y-embed-dim', type=int, default=128)
+    parser.add_argument('--t-embed-dim', type=int, default=40)
+    parser.add_argument('--y-embed-dim', type=int, default=40)
     # trainer
     parser.add_argument('--eta', type=float, default=0.1)
     # train
-    parser.add_argument('--num-epochs', type=int, default=10000)
+    parser.add_argument('--num-epochs', type=int, default=5000)
     parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--batch-size', type=int, default=1024)
+    parser.add_argument('--batch-size', type=int, default=256)
 
     return parser.parse_args()
 
