@@ -230,12 +230,52 @@ class CFGVectorFieldODE(ODE):
         unguided_vector_field = self.net(x, t, unguided_y)
         return (1 - self.guidance_scale) * unguided_vector_field + self.guidance_scale * guided_vector_field
     
+class CFGVectorFieldSDE(SDE):
+    def __init__(self, net: ConditionalVectorField, guidance_scale: float, sigma: float, alpha: Alpha, beta: Beta):
+        self.net = net
+        self.guidance_scale = guidance_scale
+        self.sigma = sigma
+        self.alpha = alpha
+        self.beta = beta
+
+    def drift_coefficient(self, x: torch.Tensor, t: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+        - x: (bs, c, h, w)
+        - t: (bs, 1, 1, 1)
+        - y: (bs,)
+        """
+        guided_score_function = self.net(x, t, y)
+        unguided_y = torch.ones_like(y) * 10
+        unguided_score_function = self.net(x, t, unguided_y)
+        score_function = (1 - self.guidance_scale) * unguided_score_function + self.guidance_scale * guided_score_function
+
+        alpha_t = self.alpha(t)
+        beta_t = self.beta(t)
+        alpha_dt = self.alpha.dt(t)
+        beta_dt = self.beta.dt(t)
+        vector_field = (beta_t ** 2 * alpha_dt / alpha_t - beta_dt * beta_t) * score_function + alpha_dt / alpha_t * x
+
+        return vector_field + 0.5 * self.sigma ** 2 * score_function
+
+    def diffusion_coefficient(self, xt: torch.Tensor, t: torch.Tensor, **kwargs) -> torch.Tensor:
+        """
+        Returns the diffusion coefficient of the ODE.
+        Args:
+            - xt: state at time t, shape (bs, c, h, w)
+            - t: time, shape (bs, 1, 1, 1)
+        Returns:
+            - diffusion_coefficient: shape (bs, c, h, w)
+        """
+        return self.sigma * torch.randn_like(xt)
+    
 class CFGTrainer(Trainer):
-    def __init__(self, path: GaussianConditionalProbabilityPath, model: ConditionalVectorField, eta: float, **kwargs):
+    def __init__(self, path: GaussianConditionalProbabilityPath, model: ConditionalVectorField, eta: float, score_matching: bool, **kwargs):
         assert eta > 0 and eta < 1
         super().__init__(model, **kwargs)
         self.eta = eta
         self.path = path
+        self.score_matching = score_matching
 
     def get_train_loss(self, batch_size: int) -> torch.Tensor:
         # Step 1: Sample z,y from p_data
@@ -251,6 +291,9 @@ class CFGTrainer(Trainer):
 
         # Step 4: Regress and output loss
         ut_theta = self.model(x,t,y) # (bs, c, h, w)
-        ut_ref = self.path.conditional_vector_field(x,z,t) # (bs, c, h, w)
+        if self.score_matching:
+            ut_ref = self.path.conditional_score(x, z, t) # (bs, c, h, w)
+        else:
+            ut_ref = self.path.conditional_vector_field(x,z,t) # (bs, c, h, w)
         error = torch.einsum('bchw -> b', torch.square(ut_theta - ut_ref)) # (bs,)
         return torch.mean(error)

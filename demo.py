@@ -5,16 +5,16 @@ from matplotlib import pyplot as plt
 import torch
 from torchvision import transforms
 
-from utils import CIFAR10Sampler, MNISTSampler, GaussianConditionalProbabilityPath, LinearAlpha, LinearBeta, CFGVectorFieldODE, EulerSimulator
+from utils import CIFAR10Sampler, MNISTSampler, GaussianConditionalProbabilityPath, LinearAlpha, LinearBeta, CFGVectorFieldODE, CFGVectorFieldSDE, EulerSimulator, EulerMaruyamaSimulator
 from models import UNet
-
-classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
+    # method
+    parser.add_argument('--method', type=str, default='flow matching', choices=['flow matching', 'diffusion'])
+    parser.add_argument('--sigma', type=float, default=2.0)
     # dataset
-    parser.add_argument('--dataset', type=str, default='cifar10' ,choices=['mnist', 'cifar10'])
+    parser.add_argument('--dataset', type=str, default='cifar10', choices=['mnist', 'cifar10'])
     # model
     parser.add_argument('--channels', nargs='+', type=int, default=[64, 128, 256, 512])
     parser.add_argument('--num-residual-layers', type=int, default=2)
@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument('--y-embed-dim', type=int, default=128)
     parser.add_argument('--model-path', type=str, required=True)
     # simulate
-    parser.add_argument('--y', type=str, required=True, choices=classes)
+    parser.add_argument('--y', type=str, required=True, choices=['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
     parser.add_argument('--w', type=float, default=3.0)
     parser.add_argument('--num-timesteps', type=int, default=1000)
 
@@ -36,9 +36,11 @@ def main():
     if args.dataset == 'cifar10':
         p_data = CIFAR10Sampler()
         in_channel = 3
+        classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
     elif args.dataset == 'mnist':
         p_data = MNISTSampler()
         in_channel = 1
+        classes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
     path = GaussianConditionalProbabilityPath(
         p_data = p_data,
@@ -55,10 +57,14 @@ def main():
         t_embed_dim = args.t_embed_dim,
         y_embed_dim = args.y_embed_dim
     )
-    unet.load_state_dict(torch.load(args.model_path, map_location=device))
+    unet.load_state_dict(torch.load(args.model_path, map_location=device, weights_only=True))
 
-    ode = CFGVectorFieldODE(unet, guidance_scale=args.w)
-    simulator = EulerSimulator(ode)
+    if args.method == 'flow matching':
+        ode = CFGVectorFieldODE(unet, guidance_scale=args.w)
+        simulator = EulerSimulator(ode)
+    else:
+        sde = CFGVectorFieldSDE(unet, guidance_scale=args.w, sigma=args.sigma, alpha=LinearAlpha(), beta=LinearBeta())
+        simulator = EulerMaruyamaSimulator(sde)
 
     y = classes.index(args.y)
     y = torch.tensor([y]).to(device)
@@ -72,12 +78,12 @@ def main():
     denormalize = transforms.Normalize(mean = -mean/std, std = 1/std)
 
     x1 = denormalize(x1)
-    plt.axis("off")
     if args.dataset == 'cifar10':
         cmap = None
     elif args.dataset == 'mnist':
         cmap = 'gray'
     plt.imshow(x1.permute(1,2,0).cpu(), cmap=cmap)
+    plt.axis("off")
 
     if not os.path.exists('./generated'):
         os.makedirs('./generated')

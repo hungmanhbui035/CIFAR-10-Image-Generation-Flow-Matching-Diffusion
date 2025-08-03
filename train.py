@@ -10,9 +10,10 @@ from models import UNet
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    
+    # method
+    parser.add_argument('--method', type=str, default='flow matching', choices=['flow matching', 'diffusion'])
     # dataset
-    parser.add_argument('--dataset', type=str, default='cifar10' ,choices=['mnist', 'cifar10'])
+    parser.add_argument('--dataset', type=str, default='cifar10', choices=['mnist', 'cifar10'])
     # model
     parser.add_argument('--channels', nargs='+', type=int, default=[64, 128, 256, 512])
     parser.add_argument('--num-residual-layers', type=int, default=2)
@@ -56,10 +57,14 @@ def main():
         y_embed_dim = args.y_embed_dim
     )
     unet = nn.DataParallel(unet)
-    model_path = f'./models/{args.dataset}_unet.pth'
+    model_path = f'./models/{args.dataset}_{args.method}_unet.pth'
     
     # Initialize trainer
-    trainer = CFGTrainer(path = path, model = unet, eta=args.eta)
+    if args.method == 'flow matching':
+        score_matching = False
+    else:
+        score_matching = True
+    trainer = CFGTrainer(path = path, model = unet, eta=args.eta, score_matching=score_matching)
 
     # wandb
     wandb.login()
