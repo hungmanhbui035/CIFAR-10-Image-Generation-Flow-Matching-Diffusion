@@ -285,10 +285,11 @@ class Trainer(ABC):
             loss.backward()
             opt.step()
             sche.step()
-            wandb.log({
-                "loss": loss,
-                "epoch": epoch
-            })
+            if (epoch + 1) % 10 == 0:
+                wandb.log({
+                    "loss": loss,
+                    "epoch": epoch
+                })
             pbar.set_description(f'Epoch {idx}, loss: {loss.item():.3f}')
 
         # Finish

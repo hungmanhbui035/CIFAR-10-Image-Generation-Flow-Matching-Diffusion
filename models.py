@@ -14,7 +14,7 @@ class FourierEncoder(nn.Module):
         super().__init__()
         assert dim % 2 == 0
         self.half_dim = dim // 2
-        self.weights = nn.Parameter(torch.randn(1, self.half_dim) * 0.02)
+        self.weights = nn.Parameter(torch.randn(1, self.half_dim))
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         """
@@ -162,7 +162,6 @@ class UNet(ConditionalVectorField):
 
         # Initialize y embedder
         self.y_embedder = nn.Embedding(num_embeddings = num_classes + 1, embedding_dim = y_embed_dim)
-        nn.init.normal_(self.y_embedder.weight, mean=0, std=0.02)
 
         # Encoders, Midcoders, and Decoders
         encoders = []
