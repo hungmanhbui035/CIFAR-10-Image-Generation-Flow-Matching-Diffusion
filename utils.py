@@ -247,8 +247,8 @@ class CFGVectorFieldSDE(SDE):
         - t: (bs, 1, 1, 1)
         - y: (bs,)
         """
-        alpha_t = self.alpha(t)
-        beta_t = self.beta(t)
+        alpha_t = self.alpha(t).clamp(min=1e-7)
+        beta_t = self.beta(t).clamp(min=1e-7)
         alpha_dt = self.alpha.dt(t)
         beta_dt = self.beta.dt(t)
 
