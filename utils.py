@@ -87,7 +87,7 @@ class GaussianConditionalProbabilityPath(ConditionalProbabilityPath):
         """
         return self.p_data.sample(num_samples)
     
-    def sample_conditional_path(self, z: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def sample_conditional_path(self, z: torch.Tensor, t: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Samples from the conditional distribution p_t(x|z)
         Args:
@@ -95,8 +95,10 @@ class GaussianConditionalProbabilityPath(ConditionalProbabilityPath):
             - t: time (num_samples, 1, 1, 1)
         Returns:
             - x: samples from p_t(x|z), (num_samples, c, h, w)
+            -eps
         """
-        return self.alpha(t) * z + self.beta(t) * torch.randn_like(z)   
+        eps = torch.randn_like(z)
+        return self.alpha(t) * z + self.beta(t) * eps, eps
         
     def conditional_vector_field(self, x: torch.Tensor, z: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
@@ -288,12 +290,12 @@ class CFGTrainer(Trainer):
         
         # Step 3: Sample t and x
         t = torch.rand(batch_size,1,1,1).to(z) # (bs, 1, 1, 1)
-        x = self.path.sample_conditional_path(z,t) # (bs, c, h, w)
+        x, eps = self.path.sample_conditional_path(z,t) # (bs, c, h, w)
 
         # Step 4: Regress and output loss
         ut_theta = self.model(x,t,y) # (bs, c, h, w)
         if self.score_matching:
-            ut_ref = torch.randn_like(x) # (bs, c, h, w)
+            ut_ref = eps
         else:
             ut_ref = self.path.conditional_vector_field(x,z,t) # (bs, c, h, w)
         error = torch.einsum('bchw -> b', torch.square(ut_theta - ut_ref)) # (bs,)

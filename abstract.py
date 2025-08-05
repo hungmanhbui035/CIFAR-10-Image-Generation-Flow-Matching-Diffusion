@@ -59,7 +59,7 @@ class ConditionalProbabilityPath(nn.Module, ABC):
         pass
     
     @abstractmethod
-    def sample_conditional_path(self, z: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def sample_conditional_path(self, z: torch.Tensor, t: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Samples from the conditional distribution p_t(x|z)
         Args:
@@ -67,6 +67,7 @@ class ConditionalProbabilityPath(nn.Module, ABC):
             - t: time (num_samples, 1, 1, 1)
         Returns:
             - x: samples from p_t(x|z), (num_samples, c, h, w)
+            - eps
         """
         pass
         
