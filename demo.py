@@ -12,7 +12,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     # method
     parser.add_argument('--method', type=str, default='flow matching', choices=['flow matching', 'diffusion'])
-    parser.add_argument('--sigma', type=float, default=2.0)
+    parser.add_argument('--sigma', type=float, default=1.0)
     # dataset
     parser.add_argument('--dataset', type=str, default='mnist', choices=['mnist', 'cifar10'])
     # model

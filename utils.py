@@ -257,7 +257,7 @@ class CFGVectorFieldSDE(SDE):
 
         vector_field = (beta_t**2 * alpha_dt / alpha_t - beta_dt * beta_t + self.diffusion_coefficient(x, t)**2 / 2) * score_function + alpha_dt / alpha_t * x
 
-        return vector_field + 0.5 * self.sigma ** 2 * score_function
+        return vector_field
 
     def diffusion_coefficient(self, xt: torch.Tensor, t: torch.Tensor, **kwargs) -> torch.Tensor:
         """
