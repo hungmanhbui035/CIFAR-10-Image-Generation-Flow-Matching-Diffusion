@@ -245,16 +245,17 @@ class CFGVectorFieldSDE(SDE):
         - t: (bs, 1, 1, 1)
         - y: (bs,)
         """
-        guided_score_function = self.net(x, t, y)
-        unguided_y = torch.ones_like(y) * 10
-        unguided_score_function = self.net(x, t, unguided_y)
-        score_function = (1 - self.guidance_scale) * unguided_score_function + self.guidance_scale * guided_score_function
-
         alpha_t = self.alpha(t)
         beta_t = self.beta(t)
         alpha_dt = self.alpha.dt(t)
         beta_dt = self.beta.dt(t)
-        vector_field = (beta_t ** 2 * alpha_dt / alpha_t - beta_dt * beta_t) * score_function + alpha_dt / alpha_t * x
+
+        guided_score_function = -(self.net(x, t, y) / beta_t)
+        unguided_y = torch.ones_like(y) * 10
+        unguided_score_function = -(self.net(x, t, unguided_y) / beta_t)
+        score_function = (1 - self.guidance_scale) * unguided_score_function + self.guidance_scale * guided_score_function
+
+        vector_field = (beta_t**2 * alpha_dt / alpha_t - beta_dt * beta_t + self.diffusion_coefficient(x, t)**2 / 2) * score_function + alpha_dt / alpha_t * x
 
         return vector_field + 0.5 * self.sigma ** 2 * score_function
 
@@ -292,7 +293,7 @@ class CFGTrainer(Trainer):
         # Step 4: Regress and output loss
         ut_theta = self.model(x,t,y) # (bs, c, h, w)
         if self.score_matching:
-            ut_ref = self.path.conditional_score(x, z, t) # (bs, c, h, w)
+            ut_ref = torch.randn_like(x) # (bs, c, h, w)
         else:
             ut_ref = self.path.conditional_vector_field(x,z,t) # (bs, c, h, w)
         error = torch.einsum('bchw -> b', torch.square(ut_theta - ut_ref)) # (bs,)
